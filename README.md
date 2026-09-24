@@ -21,10 +21,12 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
-streamlit run src/app.py
+streamlit run app.py
 ```
 
 The UI opens at `http://localhost:8501`.
+
+Running `streamlit run src/app.py` is also supported.
 
 To run the API instead:
 
@@ -51,4 +53,3 @@ Upload → Parser → ATS checks ─┐
 
 The local analyser is intentionally deterministic and explainable. The LLM is
 used only to enrich writing suggestions and must return validated JSON.
-

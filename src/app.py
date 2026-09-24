@@ -2,6 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from pathlib import Path
+
+# Streamlit executes this file as a script, which can omit the repository root
+# from sys.path. Add it explicitly so `streamlit run src/app.py` works from a
+# fresh checkout without requiring the package to be installed first.
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -111,4 +119,3 @@ if report := st.session_state.get("report"):
         mime="application/json",
         use_container_width=True,
     )
-
