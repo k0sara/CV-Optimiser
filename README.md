@@ -148,3 +148,7 @@ docker run --rm -p 8501:8501 cv-optimiser
 - Expand the vocabulary with annotated evaluation examples.
 - Compare CV versions against the same job description.
 - Add downloadable polished reports and richer writing evaluation.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
