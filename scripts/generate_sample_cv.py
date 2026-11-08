@@ -131,7 +131,7 @@ def build_cv():
     set_font(
         contact.add_run(
             "Sofia, Bulgaria  •  alex.morgan@example.com  •  Phone: [sample number]\n"
-            "https://example.com/alex-morgan  •  Fictional contact details"
+            "Portfolio: https://example.com/alex-morgan  •  Fictional contact details"
         ),
         size=9.3,
         color=MUTED,
