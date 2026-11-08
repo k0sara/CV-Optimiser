@@ -16,12 +16,23 @@ from dotenv import load_dotenv
 
 from src.analyzer import analyse
 from src.parser import parse_document
+from src.reports import markdown_report
 
 load_dotenv()
 
 st.set_page_config(page_title="CV Optimiser", page_icon="📄", layout="wide")
 st.title("CV Optimiser")
 st.caption("See how well your CV matches a role—and what to improve next.")
+st.caption("Evidence-based skill matching · Explainable scoring · No account required")
+
+if st.button("Try the sample CV & job", use_container_width=True):
+    sample_dir = Path(__file__).resolve().parent.parent / "sample_data"
+    cv = parse_document((sample_dir / "Alex_Morgan_Sample_CV.docx").read_bytes(), "sample.docx")
+    st.session_state["report"] = analyse(cv, (sample_dir / "job_description.txt").read_text(), use_llm=False)
+    st.session_state["report_source"] = "Sample CV · Backend Python Engineer"
+
+with st.expander("How your data is used"):
+    st.write("Documents are processed in memory by this application and are not saved to a database. Enabling AI writing suggestions sends extracted CV and job text to OpenAI. Local analysis does not send document text to an AI provider.")
 
 left, right = st.columns(2)
 with left:
@@ -59,11 +70,15 @@ if st.button("Analyse CV", type="primary", use_container_width=True):
                     ).text
                 report = analyse(cv, job_text, use_llm=use_llm)
                 st.session_state["report"] = report
+                st.session_state["report_source"] = cv_file.name
         except Exception as error:
             st.error(f"Analysis failed: {error}")
 
 if report := st.session_state.get("report"):
     st.divider()
+    st.caption(st.session_state.get("report_source", "Analysis results"))
+    for warning in report.warnings:
+        st.warning(warning)
     score_col, detail_col = st.columns([1, 3])
     with score_col:
         st.metric("Overall match", f"{report.match_score}%")
@@ -71,24 +86,34 @@ if report := st.session_state.get("report"):
         st.caption("AI enhanced" if report.llm_enhanced else "Local analysis")
     with detail_col:
         a, b, c = st.columns(3)
-        a.metric("Keyword coverage", f"{report.breakdown.keyword_coverage}%")
+        a.metric("Skill coverage", f"{report.breakdown.keyword_coverage}%")
         b.metric("ATS readiness", f"{report.breakdown.ats_readiness}%")
         c.metric("Content quality", f"{report.breakdown.content_quality}%")
+    with st.expander("Understand your score"):
+        st.write("60% skill coverage + 25% ATS checks + 15% content signals. Required skills count twice as much as preferred skills. Matching detects mentions, not proficiency or hiring suitability. ATS checks cover extracted text, contact details, headings and length; they cannot certify compatibility with every ATS.")
 
     strengths_col, missing_col = st.columns(2)
     with strengths_col:
         st.subheader("Strengths")
         st.write("\n".join(f"✓ {item}" for item in report.strengths) or "No clear matches yet.")
     with missing_col:
-        st.subheader("Missing keywords")
+        st.subheader("Skills to review")
         st.write("\n".join(f"• {item}" for item in report.missing_skills) or "No major gaps detected.")
+        st.caption("Only add a missing skill if you can honestly demonstrate it.")
+
+    with st.expander("Explore the evidence behind each skill", expanded=True):
+        if report.skill_evidence:
+            st.dataframe([
+                {"Skill": item.skill, "Status": "Matched" if item.matched else "Missing", "Priority": item.priority.title(), "CV evidence": item.evidence or "No mention found"}
+                for item in report.skill_evidence
+            ], use_container_width=True, hide_index=True)
 
     st.subheader("ATS report")
     for check in report.ats_checks:
         icon = "✅" if check.passed else "⚠️"
         st.write(f"{icon} **{check.name}** — {check.detail}")
 
-    st.subheader("Improved professional summary")
+    st.subheader("Professional summary" if report.llm_enhanced else "Summary guidance")
     st.info(report.improved_summary)
 
     st.subheader("Suggested bullet rewrites")
@@ -113,9 +138,10 @@ if report := st.session_state.get("report"):
 
     payload = json.dumps(report.model_dump(), indent=2)
     st.download_button(
-        "Download report",
+        "Download structured JSON",
         data=payload,
         file_name="cv-analysis-report.json",
         mime="application/json",
         use_container_width=True,
     )
+    st.download_button("Download readable report", markdown_report(report), file_name="cv-analysis-report.md", mime="text/markdown", use_container_width=True)

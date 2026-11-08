@@ -1,0 +1,11 @@
+Backend Python Engineer
+
+Build reliable backend services for a growing analytics platform.
+
+Requirements
+Python, FastAPI, PostgreSQL, SQL, REST APIs, Docker and Kubernetes.
+Maintain CI/CD with GitHub Actions and deploy services to AWS.
+Write automated tests using Pytest and collaborate using Git and Agile practices.
+
+Nice to have
+Terraform, Redis, Celery, RabbitMQ, Prometheus and Grafana.

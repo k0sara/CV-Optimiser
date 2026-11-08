@@ -1,4 +1,15 @@
 .env
+.env.*
+!.env.example
+.aws/
+.ssh/
+*.pem
+*.key
+*.p12
+*.pfx
+.streamlit/secrets.toml
+uploads/
+reports/
 .venv/
 __pycache__/
 .pytest_cache/

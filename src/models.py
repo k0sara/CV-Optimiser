@@ -29,6 +29,13 @@ class MatchBreakdown(BaseModel):
     content_quality: int = Field(ge=0, le=100)
 
 
+class SkillEvidence(BaseModel):
+    skill: str
+    matched: bool
+    priority: str = "required"
+    evidence: str = ""
+
+
 class AnalysisReport(BaseModel):
     match_score: int = Field(ge=0, le=100)
     breakdown: MatchBreakdown
@@ -40,3 +47,6 @@ class AnalysisReport(BaseModel):
     projects_to_highlight: list[str]
     suggested_section_order: list[str]
     llm_enhanced: bool = False
+    skill_evidence: list[SkillEvidence] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    methodology: str = "skills-v2"

@@ -10,7 +10,8 @@ from src.models import (
     MatchBreakdown,
     ParsedDocument,
 )
-from src.scoring import keyword_match, overall_score
+from src.scoring import overall_score
+from src.skills import coverage, match_skills
 
 
 def analyse(cv: ParsedDocument, job_text: str, use_llm: bool = True) -> AnalysisReport:
@@ -19,11 +20,22 @@ def analyse(cv: ParsedDocument, job_text: str, use_llm: bool = True) -> Analysis
     if not job_text.strip():
         raise ValueError("The job description is empty.")
 
-    strengths, missing, keyword_score = keyword_match(cv.text, job_text)
+    matches = match_skills(cv.text, job_text)
+    strengths = [item.skill for item in matches if item.matched]
+    missing = [item.skill for item in matches if not item.matched]
+    keyword_score = coverage(matches)
+    warnings = []
+    if not matches:
+        warnings.append("No supported technical skills were recognised in this job description. The match score is not informative for this role.")
     checks = analyse_ats(cv)
     readiness = ats_score(checks)
     content_score = _content_score(cv.text)
-    enhancement = enhance_with_llm(cv.text, job_text, missing) if use_llm else None
+    enhancement = None
+    if use_llm:
+        try:
+            enhancement = enhance_with_llm(cv.text, job_text, missing)
+        except Exception:
+            warnings.append("AI writing suggestions were unavailable. Your local analysis is still complete; try again later.")
 
     summary = (
         enhancement.improved_summary
@@ -48,8 +60,8 @@ def analyse(cv: ParsedDocument, job_text: str, use_llm: bool = True) -> Analysis
             ats_readiness=readiness,
             content_quality=content_score,
         ),
-        strengths=_display_terms(strengths[:12]),
-        missing_skills=_display_terms(missing[:12]),
+        strengths=strengths,
+        missing_skills=missing,
         ats_checks=checks,
         improved_summary=summary,
         bullet_suggestions=bullets,
@@ -64,6 +76,8 @@ def analyse(cv: ParsedDocument, job_text: str, use_llm: bool = True) -> Analysis
             "Certifications",
         ],
         llm_enhanced=enhancement is not None,
+        skill_evidence=matches,
+        warnings=warnings,
     )
 
 
@@ -83,7 +97,7 @@ def _content_score(text: str) -> int:
 
 def _local_summary(strengths: list[str], missing: list[str]) -> str:
     if strengths:
-        skills = ", ".join(_display_terms(strengths[:5]))
+        skills = ", ".join(strengths[:5])
         return (
             f"Results-focused professional with relevant experience across {skills}. "
             "Apply the strongest evidence and measurable outcomes from the CV to "
@@ -112,7 +126,7 @@ def _local_bullet_suggestions(text: str) -> list[BulletSuggestion]:
 
 
 def _local_project_suggestions(strengths: list[str]) -> list[str]:
-    shown = _display_terms(strengths[:4])
+    shown = strengths[:4]
     if not shown:
         return ["Highlight the project or role most closely related to the job."]
     return [
